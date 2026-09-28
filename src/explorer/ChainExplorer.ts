@@ -97,9 +97,13 @@ export class ChainExplorer {
      * Returns null when not found (too old for the window, or unknown hash).
      */
     async findTransaction(
-        hash: string
+        hash: string,
+        chains?: ConsensusType[]
     ): Promise<{ chain: ConsensusType; block: number; blockHash: string; tx: ChainTransaction } | null> {
-        for (const chain of ['DPOS', 'PBFT'] as ConsensusType[]) {
+        // NOTE: only scan chains the target node actually serves — a
+        // single-chain node answers any header with its own chain, which
+        // would otherwise mislabel blocks (seen live: DPOS blocks as PBFT).
+        for (const chain of chains ?? (['DPOS', 'PBFT'] as ConsensusType[])) {
             const { blocks } = await this.listBlocks(chain);
             for (const b of blocks) {
                 for (const tx of b.transactions || []) {
@@ -116,12 +120,12 @@ export class ChainExplorer {
      * Address history: every transaction where the address is sender or
      * recipient, across both chains, newest block first.
      */
-    async scanAddressHistory(address: string): Promise<AddressMovement[]> {
+    async scanAddressHistory(address: string, chains?: ConsensusType[]): Promise<AddressMovement[]> {
         validateAddress(address);
         const needle = address.toLowerCase();
         const out: AddressMovement[] = [];
 
-        for (const chain of ['DPOS', 'PBFT'] as ConsensusType[]) {
+        for (const chain of chains ?? (['DPOS', 'PBFT'] as ConsensusType[])) {
             const { blocks } = await this.listBlocks(chain);
             for (const b of blocks) {
                 for (const tx of b.transactions || []) {
