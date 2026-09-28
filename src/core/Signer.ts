@@ -1,5 +1,6 @@
+import { Buffer } from 'buffer';
 import { Wallet } from '../accounts/Wallet';
-import { crypto, generateQuantumHashHex } from '../utils';
+import { crypto, deriveAddressHex } from '../utils';
 
 /**
  * Signer class for transaction signing and verification
@@ -55,6 +56,6 @@ export class Signer {
      * "Recover" address (simply derivation from public key in ML-DSA)
      */
     async recoverAddress(_message: string, _signature: string, publicKey: string): Promise<string> {
-        return generateQuantumHashHex(publicKey);
+        return deriveAddressHex(Buffer.from(publicKey.startsWith('0x') ? publicKey.slice(2) : publicKey, 'hex'));
     }
 }

@@ -32,5 +32,14 @@ export * from './consensus';
 // Gas
 export * from './gas';
 
+// Faucet (testnet)
+export * from './faucet';
+
+// Mempool
+export * from './mempool';
+
+// Chain explorer (blocks, heights, address history)
+export * from './explorer';
+
 // Re-export main client as default
 export { KodeChainClient as default } from './core';

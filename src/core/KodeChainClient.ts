@@ -16,6 +16,10 @@ import { CONSTANTS, DEFAULT_CONSENSUS, validateRequired } from '../utils';
 import { ValidatorManager } from '../consensus/ValidatorManager';
 import { DVMManager } from './DVMManager';
 import { SmartAccountManager } from './SmartAccountManager';
+import { FaucetManager } from '../faucet/FaucetManager';
+import { MempoolManager } from '../mempool/MempoolManager';
+import { ChainExplorer } from '../explorer/ChainExplorer';
+import { TransactionsManager } from '../transactions/TransactionsManager';
 
 export class KodeChainClient {
     private provider: Provider;
@@ -27,6 +31,10 @@ export class KodeChainClient {
     public validators: ValidatorManager;
     public dvm: DVMManager;
     public smartAccounts: SmartAccountManager;
+    public faucet: FaucetManager;
+    public mempool: MempoolManager;
+    public explorer: ChainExplorer;
+    public transactions: TransactionsManager;
     private config: ClientConfig;
     private connected: boolean = false;
 
@@ -55,6 +63,10 @@ export class KodeChainClient {
         this.validators = new ValidatorManager(this);
         this.dvm = new DVMManager(this);
         this.smartAccounts = new SmartAccountManager(this);
+        this.faucet = new FaucetManager(this);
+        this.mempool = new MempoolManager(this);
+        this.explorer = new ChainExplorer(this);
+        this.transactions = new TransactionsManager(this);
     }
 
     /**

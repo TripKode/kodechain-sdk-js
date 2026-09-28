@@ -1,5 +1,5 @@
 import { KodeChainClient } from '../core';
-import { validateAddress, generateQuantumHashHex, crypto } from '../utils';
+import { validateAddress, deriveAddressHex, crypto } from '../utils';
 import { Buffer } from 'buffer';
 
 export class Wallet {
@@ -22,7 +22,7 @@ export class Wallet {
     static createRandom(client: KodeChainClient): Wallet {
         const seed = crypto.randomBytes(32);
         const { publicKey, secretKey } = crypto.ml_dsa65.keygen(seed);
-        const address = generateQuantumHashHex(publicKey);
+        const address = deriveAddressHex(publicKey);  // canonical: QSH(pubkey) last-40 hex (KDC-ADDR)
 
         return new Wallet(address, client, publicKey, secretKey);
     }
@@ -40,7 +40,7 @@ export class Wallet {
         }
 
         const { publicKey, secretKey } = crypto.ml_dsa65.keygen(seedBytes);
-        const address = generateQuantumHashHex(publicKey);
+        const address = deriveAddressHex(publicKey);  // canonical: QSH(pubkey) last-40 hex (KDC-ADDR)
 
         return new Wallet(address, client, publicKey, secretKey);
     }
@@ -60,7 +60,7 @@ export class Wallet {
 
         // Derive public key from secret key using ML-DSA-65
         const publicKey = crypto.ml_dsa65.getPublicKey(secretKeyBytes);
-        const address = generateQuantumHashHex(publicKey);
+        const address = deriveAddressHex(publicKey);  // canonical: QSH(pubkey) last-40 hex (KDC-ADDR)
 
         return new Wallet(address, client, publicKey, secretKeyBytes);
     }
@@ -119,25 +119,20 @@ export class Wallet {
     }
 
     /**
-     * Send transaction
+     * Send KDC to another address (mined by consensus).
+     * @param to destination wallet address (0x + 40 hex)
+     * @param amountProton exact amount in proton as decimal string (1 KDC = 1e18)
+     * Engine endpoint: POST /api/transaction/create (TRANSFER → DPOS policy)
      */
-    async sendTransaction(to: string, amount: string, chain?: 'DPOS' | 'PBFT'): Promise<any> {
+    async sendTransaction(to: string, amountProton: string, chain?: 'DPOS' | 'PBFT'): Promise<any> {
         validateAddress(to);
-
-        const tx = {
+        void chain;
+        return this.client.getProvider().post('/api/transaction/create', {
+            type: 'transfer',
             from: this.address,
             to,
-            value: amount,
-            consensus: chain || 'DPOS',
-            timestamp: Date.now(),
-        };
-
-        const signature = await this.sign(JSON.stringify(tx));
-
-        return this.client.getProvider().post('/api/transactions/send', {
-            ...tx,
-            signature,
-            pubKey: this.getPublicKey(),
+            amount_proton: amountProton,
+            gasPrice: 1_000_000_000,
         });
     }
 }

@@ -5,6 +5,7 @@
 import { KodeChainClient } from '../core';
 import { Transaction, ConsensusType } from '../types';
 import { validateAddress } from '../utils';
+import { ChainExplorer } from '../explorer/ChainExplorer';
 
 export interface TransactionHistoryOptions {
     offset?: number;
@@ -29,22 +30,30 @@ export class TransactionHistory {
         options?: TransactionHistoryOptions
     ): Promise<Transaction[]> {
         validateAddress(address);
-
-        const params = {
-            offset: options?.offset || 0,
-            limit: options?.limit || 50,
-            consensus: options?.consensus,
-            startBlock: options?.startBlock,
-            endBlock: options?.endBlock,
-        };
-
-        const response = await this.client
-            .getProvider()
-            .get<{ transactions: Transaction[] }>(`/api/accounts/${address}/transactions`, {
-                params,
-            });
-
-        return response.transactions;
+        const explorer = new ChainExplorer(this.client);
+        const chains: ConsensusType[] = options?.consensus
+            ? [options.consensus]
+            : ['DPOS', 'PBFT'];
+        const moves: Transaction[] = [];
+        for (const chain of chains) {
+            const { blocks } = await explorer.listBlocks(chain);
+            for (const b of blocks) {
+                if (options?.startBlock !== undefined && b.index < options.startBlock) continue;
+                if (options?.endBlock !== undefined && b.index > options.endBlock) continue;
+                for (const tx of b.transactions || []) {
+                    if (
+                        tx.from?.toLowerCase() === address.toLowerCase() ||
+                        tx.to?.toLowerCase() === address.toLowerCase()
+                    ) {
+                        moves.push({ ...tx, block: b.index, consensus: chain } as unknown as Transaction);
+                    }
+                }
+            }
+        }
+        moves.sort((a: any, b: any) => (b.block ?? 0) - (a.block ?? 0));
+        const offset = options?.offset || 0;
+        const limit = options?.limit || 50;
+        return moves.slice(offset, offset + limit);
     }
 
     /**
@@ -56,18 +65,8 @@ export class TransactionHistory {
     ): Promise<Transaction[]> {
         validateAddress(address);
 
-        const params = {
-            ...options,
-            type: 'sent',
-        };
-
-        const response = await this.client
-            .getProvider()
-            .get<{ transactions: Transaction[] }>(`/api/accounts/${address}/transactions`, {
-                params,
-            });
-
-        return response.transactions;
+        const all = await this.getHistory(address, options);
+        return all.filter((tx: any) => tx.from?.toLowerCase() === address.toLowerCase());
     }
 
     /**
@@ -79,24 +78,16 @@ export class TransactionHistory {
     ): Promise<Transaction[]> {
         validateAddress(address);
 
-        const params = {
-            ...options,
-            type: 'received',
-        };
-
-        const response = await this.client
-            .getProvider()
-            .get<{ transactions: Transaction[] }>(`/api/accounts/${address}/transactions`, {
-                params,
-            });
-
-        return response.transactions;
+        const all = await this.getHistory(address, options);
+        return all.filter((tx: any) => tx.to?.toLowerCase() === address.toLowerCase());
     }
 
     /**
-     * Get transaction by hash
+     * Get transaction by hash (searches recent blocks of both chains).
      */
-    async getTransaction(hash: string): Promise<Transaction> {
-        return this.client.getProvider().get<Transaction>(`/api/transactions/${hash}`);
+    async getTransaction(hash: string): Promise<Transaction | null> {
+        const explorer = new ChainExplorer(this.client);
+        const found = await explorer.findTransaction(hash);
+        return (found ? { ...found.tx, consensus: found.chain, block: found.block } : null) as unknown as Transaction | null;
     }
 }

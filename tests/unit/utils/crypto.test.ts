@@ -1,4 +1,4 @@
-import { crypto, generateQuantumHashHex } from '../../../src/utils/crypto';
+import { crypto, deriveAddressHex, generateQuantumHashHex } from '../../../src/utils/crypto';
 import { Wallet } from '../../../src/accounts/Wallet';
 import { KodeChainClient } from '../../../src/core/KodeChainClient';
 
@@ -36,9 +36,11 @@ describe('ML-DSA-65 Cryptography', () => {
         const wallet = Wallet.createRandom(client);
         const pubKey = wallet.getPublicKey();
         const address = wallet.address;
-        const expected = generateQuantumHashHex(pubKey);
+        // canonical engine scheme: 0x + last 40 hex of QSH(pubkey) in KDC-ADDR domain
+        const expected = deriveAddressHex(Buffer.from(pubKey.slice(2), 'hex'));
 
         expect(address).toBe(expected);
+        expect(address).toMatch(/^0x[0-9a-f]{40}$/);
     });
 
     test('Wallet should sign and produce a valid signature format', async () => {
