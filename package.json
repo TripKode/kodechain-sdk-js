@@ -19,7 +19,11 @@
     "lint:fix": "eslint src/**/*.ts --fix",
     "format": "prettier --write src/**/*.ts",
     "type-check": "tsc --noEmit",
-    "prepublishOnly": "npm run build"
+    "prepublishOnly": "npm run build",
+    "release": "scripts/release.sh",
+    "release:patch": "scripts/release.sh patch",
+    "release:minor": "scripts/release.sh minor",
+    "release:major": "scripts/release.sh major"
   },
   "keywords": [
     "kodechain",
