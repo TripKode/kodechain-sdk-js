@@ -11,8 +11,14 @@
 # Or publish a minor/major from your machine: npm run release:minor
 # (needs ~/.npmrc token, chmod 600).
 #
-# Requires repo secret NPM_TOKEN (npm Automation token with publish
-# rights on @kodechain/sdk-ts). No environment gates: fully automatic.
+# AUTH (npm 2026 restringe los tokens que bypasean 2FA para publicar):
+#   OPCIÓN A (recomendada) — OIDC trusted publishing, CERO tokens:
+#     npmjs.com → paquete @kodechain/sdk-ts → Settings → Trusted Publisher
+#     → owner: TripKode, repo: kodechain-sdk-js, workflow: publish.yml
+#     (y borrar el secret NPM_TOKEN del repo).
+#   OPCIÓN B — token granular (Read and write sobre @kodechain/sdk-ts y
+#     la org kodechain) en el secret NPM_TOKEN.
+# El paso de publish usa el token si existe; si no, cae a OIDC.
 
 name: Publish to npm
 
@@ -41,7 +47,7 @@ jobs:
       - name: Setup Node.js
         uses: actions/setup-node@v4
         with:
-          node-version: '20'
+          node-version: '24'  # npm 11.x: requerido para OIDC trusted publishing
           registry-url: 'https://registry.npmjs.org'
 
       - name: Install dependencies
@@ -65,9 +71,15 @@ jobs:
           echo "VERSION=$(node -p "require('./package.json').version")" >> "$GITHUB_ENV"
 
       - name: Publish to npm with provenance
-        run: npm publish --provenance --access public
+        # Token si existe (opción B); sin él, npm resuelve por OIDC
+        # trusted publishing (opción A). npm ≥ 11.5 para ambos caminos.
+        run: |
+          if [ -n "$NPM_TOKEN" ]; then
+            export NODE_AUTH_TOKEN="$NPM_TOKEN"
+          fi
+          npm publish --provenance --access public
         env:
-          NODE_AUTH_TOKEN: ${{ secrets.NPM_TOKEN }}
+          NPM_TOKEN: ${{ secrets.NPM_TOKEN }}
 
       - name: Push version bump back to master
         run: |

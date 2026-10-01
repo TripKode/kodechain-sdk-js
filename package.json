@@ -39,7 +39,8 @@
   "license": "MIT",
   "repository": {
     "type": "git",
-    "url": "https://github.com/TripKode/kodechain-sdk.git"
+    "url": "git+https://github.com/TripKode/kodechain-sdk-js.git",
+    "directory": "."
   },
   "publishConfig": {
     "access": "public"
@@ -65,5 +66,9 @@
   },
   "engines": {
     "node": ">=16.0.0"
-  }
+  },
+  "bugs": {
+    "url": "https://github.com/TripKode/kodechain-sdk-js/issues"
+  },
+  "homepage": "https://github.com/TripKode/kodechain-sdk-js#readme"
 }
