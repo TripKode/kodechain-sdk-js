@@ -1,14 +1,17 @@
 /**
- * PBFT-specific operations
+ * PBFT chain-scoped operations (real engine endpoints).
  */
 
 import { KodeChainClient } from '../core';
+import { ChainExplorer } from '../explorer/ChainExplorer';
 
 export class PBFT {
     private client: KodeChainClient;
+    private explorer: ChainExplorer;
 
     constructor(client: KodeChainClient) {
         this.client = client;
+        this.explorer = new ChainExplorer(client);
     }
 
     /**
@@ -19,30 +22,40 @@ export class PBFT {
     }
 
     /**
-     * Get PBFT block
+     * Get latest PBFT blocks (paginated).
      */
-    async getBlock(height: number): Promise<any> {
-        return this.client.getBlock(height, 'PBFT');
+    async getRecentBlocks(limit = 20, offset = 0): Promise<{ blocks: any[]; total: number }> {
+        return this.explorer.listBlocks('PBFT', { limit, offset });
     }
 
     /**
-     * Get latest PBFT block
+     * PBFT statistics computed from live chain data
+     * (the old /api/blockchain/pbft/stats endpoint does not exist).
      */
-    async getLatestBlock(): Promise<any> {
-        return this.client.getLatestBlock('PBFT');
+    async getStats(): Promise<{
+        height: number;
+        recentBlocks: number;
+        transactionsInWindow: number;
+        emptyBlocks: number;
+    }> {
+        const height = await this.getHeight();
+        const { blocks } = await this.explorer.listBlocks('PBFT', { limit: 100 });
+        let txs = 0;
+        for (const b of blocks) txs += (b.transactions || []).length;
+        return {
+            height,
+            recentBlocks: blocks.length,
+            transactionsInWindow: txs,
+            emptyBlocks: blocks.length - blocks.filter((b) => (b.transactions || []).length > 0).length,
+        };
     }
 
     /**
-     * Get PBFT statistics
+     * PBFT consensus status: height + recent finality signal.
+     * PBFT only mines on demand — height advances per confirmed record.
      */
-    async getStats(): Promise<any> {
-        return this.client.getProvider().get('/api/blockchain/pbft/stats');
-    }
-
-    /**
-     * Get PBFT consensus status
-     */
-    async getConsensusStatus(): Promise<any> {
-        return this.client.getProvider().get('/api/blockchain/pbft/consensus-status');
+    async getConsensusStatus(): Promise<{ height: number; mining: string }> {
+        const height = await this.getHeight();
+        return { height, mining: 'on-demand (per confirmed record)' };
     }
 }

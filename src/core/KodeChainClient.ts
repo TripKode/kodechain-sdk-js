@@ -20,6 +20,8 @@ import { FaucetManager } from '../faucet/FaucetManager';
 import { MempoolManager } from '../mempool/MempoolManager';
 import { ChainExplorer } from '../explorer/ChainExplorer';
 import { TransactionsManager } from '../transactions/TransactionsManager';
+import { DPOS } from '../consensus/DPOS';
+import { PBFT } from '../consensus/PBFT';
 
 export class KodeChainClient {
     private provider: Provider;
@@ -35,6 +37,8 @@ export class KodeChainClient {
     public mempool: MempoolManager;
     public explorer: ChainExplorer;
     public transactions: TransactionsManager;
+    public dpos: DPOS;
+    public pbft: PBFT;
     private config: ClientConfig;
     private connected: boolean = false;
 
@@ -48,8 +52,13 @@ export class KodeChainClient {
             ...config,
         };
 
+        // FASE 4 — Failover multi-RPC: lista de endpoints del clúster.
+        // nodeUrls gana si se provee; nodeUrl también acepta comas.
+        const nodeUrls = this.resolveNodeUrls(this.config);
+
         this.provider = new Provider({
-            baseURL: this.config.nodeUrl,
+            baseURL: nodeUrls[0],
+            baseURLs: nodeUrls,
             timeout: this.config.timeout,
             retries: this.config.retries,
             headers: this.config.headers,
@@ -67,6 +76,69 @@ export class KodeChainClient {
         this.mempool = new MempoolManager(this);
         this.explorer = new ChainExplorer(this);
         this.transactions = new TransactionsManager(this);
+        this.dpos = new DPOS(this);
+        this.pbft = new PBFT(this);
+    }
+
+    /**
+     * FASE 4 — Failover multi-RPC: normaliza la lista de endpoints del
+     * clúster a partir de config.nodeUrls (prioridad) o config.nodeUrl
+     * (acepta URLs separadas por coma, p. ej. la env KDC_RPC_URLS).
+     */
+    private resolveNodeUrls(config: ClientConfig): string[] {
+        const raw = config.nodeUrls && config.nodeUrls.length > 0
+            ? config.nodeUrls
+            : [config.nodeUrl];
+
+        const seen = new Set<string>();
+        const urls: string[] = [];
+        for (const entry of raw) {
+            for (const piece of String(entry).split(',')) {
+                const url = piece.trim().replace(/\/+$/, '');
+                if (url && !seen.has(url)) {
+                    seen.add(url);
+                    urls.push(url);
+                }
+            }
+        }
+        if (urls.length === 0) {
+            throw new Error('Se requiere al menos un endpoint (nodeUrl o nodeUrls)');
+        }
+        return urls;
+    }
+
+    /**
+     * FASE 4 — Failover multi-RPC: sondea /api/node/health de TODOS los
+     * endpoints en paralelo y apunta el cliente al nodo con MENOR latencia.
+     * Llamar al inicializar la app; la rotación ante caídas funciona aun
+     * sin llamar esto (arranca en la primera URL de la lista).
+     */
+    async selectFastestNode(): Promise<string> {
+        return this.provider.selectFastestNode();
+    }
+
+    /** FASE 4: lista de endpoints configurados para failover. */
+    getRpcUrls(): string[] {
+        return this.provider.getRpcUrls();
+    }
+
+    /**
+     * FASE 4: sondea /api/node/health de TODOS los endpoints en paralelo y
+     * actualiza el estado vivo/latencia sin mover el puntero. Para
+     * dashboards de red y verificación de clúster.
+     */
+    async probeAllNodes(): Promise<void> {
+        await this.provider.probeAllNodes();
+    }
+
+    /** FASE 4: endpoint actualmente en uso por el puntero del failover. */
+    getCurrentNodeUrl(): string {
+        return this.provider.getBaseURL();
+    }
+
+    /** FASE 4: snapshot de salud/latencia por nodo (para dashboards de red). */
+    getNodeHealth(): Array<{ url: string; alive: boolean; latencyMs: number | null }> {
+        return this.provider.getNodeHealth();
     }
 
     /**

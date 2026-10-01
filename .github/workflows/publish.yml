@@ -1,27 +1,42 @@
+# Publish @kodechain/sdk-ts to npm on every push to master.
+# Each run: install → test → build → auto-bump → publish →
+# push the bump back (with [skip ci], so no loop).
+#
+#   git push origin master
+#   → 1.2.0 becomes 1.2.1 on npm, package.json updated in-repo.
+#
+# Bump kind from the HEAD commit message (default: patch):
+#   "feat: ... [release:minor]" → 1.3.0
+#   "breaking: ... [release:major]" → 2.0.0
+# Or publish a minor/major from your machine: npm run release:minor
+# (needs ~/.npmrc token, chmod 600).
+#
+# Requires repo secret NPM_TOKEN (npm Automation token with publish
+# rights on @kodechain/sdk-ts). No environment gates: fully automatic.
+
 name: Publish to npm
 
 on:
-  release:
-    types: [published]
+  push:
+    branches: [master]
   workflow_dispatch:
-    inputs:
-      tag:
-        description: 'Tag to publish'
-        required: true
 
 permissions:
-  contents: read
+  contents: write
   id-token: write
+
+# Serialize runs: two rapid pushes must not bump+publish the same
+# version concurrently (npm rejects the second publish).
+concurrency:
+  group: npm-publish
+  cancel-in-progress: false
 
 jobs:
   publish:
     runs-on: ubuntu-latest
-    environment: npm-publish
     steps:
       - name: Checkout code
         uses: actions/checkout@v4
-        with:
-          ref: ${{ github.event.inputs.tag || github.ref }}
 
       - name: Setup Node.js
         uses: actions/setup-node@v4
@@ -38,7 +53,28 @@ jobs:
       - name: Build package
         run: npm run build
 
+      - name: Bump version (patch default, [release:minor|major] override)
+        run: |
+          MSG="$(git log -1 --pretty=%B)"
+          KIND=patch
+          case "$MSG" in
+            *"[release:major]"*) KIND=major ;;
+            *"[release:minor]"*) KIND=minor ;;
+          esac
+          npm version "$KIND" --no-git-tag-version
+          echo "VERSION=$(node -p "require('./package.json').version")" >> "$GITHUB_ENV"
+
       - name: Publish to npm with provenance
         run: npm publish --provenance --access public
         env:
           NODE_AUTH_TOKEN: ${{ secrets.NPM_TOKEN }}
+
+      - name: Push version bump back to master
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add package.json package-lock.json
+          git commit -m "chore(sdk): release v$VERSION [skip ci]" || exit 0
+          for i in 1 2 3; do
+            git pull --rebase origin master && git push origin HEAD:master && break || sleep 5
+          done

@@ -6,6 +6,14 @@ export type ConsensusType = 'DPOS' | 'PBFT';
 
 export interface ClientConfig {
     nodeUrl: string;
+    /**
+     * FASE 4 — Failover multi-RPC: lista de endpoints del clúster. Ante un
+     * error de conectividad en el nodo actual (VM apagada, SIM celular
+     * caída), las peticiones rotan de forma transparente al siguiente nodo
+     * vivo de la lista. `nodeUrl` también acepta URLs separadas por coma.
+     * Si se provee, gana sobre `nodeUrl`; si no, se usa [nodeUrl].
+     */
+    nodeUrls?: string[];
     defaultConsensus?: ConsensusType;
     timeout?: number;
     retries?: number;

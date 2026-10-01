@@ -1,6 +1,6 @@
 {
   "name": "@kodechain/sdk-ts",
-  "version": "1.1.0",
+  "version": "1.2.0",
   "description": "Official JavaScript/TypeScript SDK for KodeChain blockchain",
   "main": "dist/index.js",
   "types": "dist/index.d.ts",
@@ -39,7 +39,7 @@
   "license": "MIT",
   "repository": {
     "type": "git",
-    "url": "https://github.com/kodechain/web-sdk.git"
+    "url": "https://github.com/TripKode/kodechain-sdk.git"
   },
   "publishConfig": {
     "access": "public"

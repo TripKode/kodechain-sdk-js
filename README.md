@@ -1,13 +1,13 @@
 # KodeChain Web SDK
 
 [![NPM Version](https://img.shields.io/npm/v/@kodechain/sdk-ts?style=for-the-badge&color=blue)](https://www.npmjs.com/package/@kodechain/sdk-ts)
-[![License](https://img.shields.io/npm/l/@kodechain/sdk-ts?style=for-the-badge&color=orange)](https://github.com/kodechain/web-sdk/blob/main/LICENSE)
+[![License](https://img.shields.io/npm/l/@kodechain/sdk-ts?style=for-the-badge&color=orange)](https://github.com/TripKode/kodechain-sdk/blob/master/LICENSE)
 [![TypeScript](https://img.shields.io/badge/TypeScript-Ready-blue?style=for-the-badge&logo=typescript)](https://www.typescriptlang.org/)
 [![Quantum Resistant](https://img.shields.io/badge/Security-Quantum--Resistant-green?style=for-the-badge)](https://csrc.nist.gov/projects/post-quantum-cryptography)
 
 The official **KodeChain Web SDK** for JavaScript and TypeScript. Build high-performance, secure decentralised applications on the KodeChain network with native support for dual-chain consensus and quantum-resistant cryptography.
 
-[Explore Documentation](https://docs.kodechain.site) • [View Examples](./examples) • [Report Issue](https://github.com/kodechain/web-sdk/issues)
+[Explore Documentation](https://docs.kodechain.site) • [View Examples](./examples) • [Report Issue](https://github.com/TripKode/kodechain-sdk/issues)
 
 ---
 
@@ -150,13 +150,34 @@ Visit the [`/examples`](./examples) directory for complete, runnable scripts:
 
 ## 🤝 Contributing
 
-We welcome contributions to the KodeChain SDK! 
+We welcome contributions to the KodeChain SDK!
 
 1. Fork the repository
 2. Create your feature branch (`git checkout -b feature/AmazingFeature`)
 3. Commit your changes (`git commit -m 'Add AmazingFeature'`)
 4. Push to the branch (`git push origin feature/AmazingFeature`)
 5. Open a Pull Request
+
+---
+
+## 🚢 Releases (maintainers)
+
+Every push to `master` publishes a **new version to npm automatically**
+(`.github/workflows/publish.yml`): install → test → build → bump →
+`npm publish` → bump commit pushed back with `[skip ci]`.
+
+```bash
+git push origin master          # 1.2.0 → 1.2.1 on npm
+git commit -m "feat: ... [release:minor]"   # → 1.3.0 instead
+git commit -m "breaking: ... [release:major]"  # → 2.0.0
+```
+
+One-time setup: create an npm **Automation** token (npmjs.com →
+Access Tokens, publish rights on `@kodechain/sdk-ts`, no expiration)
+and add it as repo secret `NPM_TOKEN` (repo Settings → Secrets and
+variables → Actions). Manual fallback from your machine:
+`npm run release[:patch|:minor|:major]` (needs `~/.npmrc` token,
+chmod 600).
 
 ---
 

@@ -1,14 +1,17 @@
 /**
- * DPOS-specific operations
+ * DPOS chain-scoped operations (real engine endpoints).
  */
 
 import { KodeChainClient } from '../core';
+import { ChainExplorer } from '../explorer/ChainExplorer';
 
 export class DPOS {
     private client: KodeChainClient;
+    private explorer: ChainExplorer;
 
     constructor(client: KodeChainClient) {
         this.client = client;
+        this.explorer = new ChainExplorer(client);
     }
 
     /**
@@ -19,23 +22,31 @@ export class DPOS {
     }
 
     /**
-     * Get DPOS block
+     * Get latest DPOS blocks (paginated, newest last in response order).
      */
-    async getBlock(height: number): Promise<any> {
-        return this.client.getBlock(height, 'DPOS');
+    async getRecentBlocks(limit = 20, offset = 0): Promise<{ blocks: any[]; total: number }> {
+        return this.explorer.listBlocks('DPOS', { limit, offset });
     }
 
     /**
-     * Get latest DPOS block
+     * DPOS statistics computed from live chain data
+     * (the old /api/blockchain/dpos/stats endpoint does not exist).
      */
-    async getLatestBlock(): Promise<any> {
-        return this.client.getLatestBlock('DPOS');
-    }
-
-    /**
-     * Get DPOS statistics
-     */
-    async getStats(): Promise<any> {
-        return this.client.getProvider().get('/api/blockchain/dpos/stats');
+    async getStats(): Promise<{
+        height: number;
+        recentBlocks: number;
+        transactionsInWindow: number;
+        emptyBlocks: number;
+    }> {
+        const height = await this.getHeight();
+        const { blocks } = await this.explorer.listBlocks('DPOS', { limit: 100 });
+        let txs = 0;
+        for (const b of blocks) txs += (b.transactions || []).length;
+        return {
+            height,
+            recentBlocks: blocks.length,
+            transactionsInWindow: txs,
+            emptyBlocks: blocks.length - blocks.filter((b) => (b.transactions || []).length > 0).length,
+        };
     }
 }

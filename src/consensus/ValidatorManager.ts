@@ -25,6 +25,41 @@ export class ValidatorManager {
     }
 
     /**
+     * Validators with on-chain stake: merges the registry (stake_amount,
+     * is_active, consensus) with the smart-account buckets (KDC balance +
+     * KDC_STAKED lock — the physical on-chain lock). This is the table the
+     * explorer renders: what the contract says vs what the chain holds.
+     */
+    async getWithStake(): Promise<Array<Validator & {
+        onchainKDC: string;
+        onchainStaked: string;
+        stakeMatch: boolean;
+    }>> {
+        const validators = await this.list();
+        return Promise.all(
+            validators.map(async (v: any) => {
+                let onchainKDC = '0';
+                let onchainStaked = '0';
+                try {
+                    const acc = await this.client.smartAccounts.getAccount(v.address);
+                    const balances = acc?.account?.balances || acc?.balances || {};
+                    onchainKDC = String(balances.KDC?.amount ?? '0');
+                    onchainStaked = String(balances.KDC_STAKED?.amount ?? '0');
+                } catch {
+                    /* account not synced on this node — keep zeros */
+                }
+                const registered = String(v.stake_amount ?? v.total_stake ?? '0');
+                return {
+                    ...v,
+                    onchainKDC,
+                    onchainStaked,
+                    stakeMatch: onchainStaked === registered,
+                };
+            })
+        );
+    }
+
+    /**
      * Get a specific validator
      */
     async get(address: string): Promise<Validator> {

@@ -69,11 +69,18 @@ export class ChainExplorer {
      * Recent blocks of a chain (engine window: last ~100 DPOS blocks,
      * full PBFT history while short).
      */
-    async listBlocks(chain: ConsensusType): Promise<{ blocks: ChainBlock[]; total: number }> {
+    async listBlocks(
+        chain: ConsensusType,
+        options?: { limit?: number; offset?: number }
+    ): Promise<{ blocks: ChainBlock[]; total: number }> {
+        const params: Record<string, string> = {};
+        if (options?.limit !== undefined) params.limit = String(options.limit);
+        if (options?.offset !== undefined) params.offset = String(options.offset);
         const response = await this.client
             .getProvider()
             .get<{ blocks: ChainBlock[]; total: number }>('/api/block/all', {
                 headers: { 'X-Consensus-Type': chain },
+                params,
             });
         return {
             blocks: response.blocks || [],
