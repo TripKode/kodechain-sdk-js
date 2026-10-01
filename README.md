@@ -1,6 +1,7 @@
 # KodeChain Web SDK
 
 [![NPM Version](https://img.shields.io/npm/v/@kodechain/sdk-ts?style=for-the-badge&color=blue)](https://www.npmjs.com/package/@kodechain/sdk-ts)
+[![Downloads](https://img.shields.io/npm/dm/@kodechain/sdk-ts?style=for-the-badge&color=blue)](https://www.npmjs.com/package/@kodechain/sdk-ts)
 [![License](https://img.shields.io/npm/l/@kodechain/sdk-ts?style=for-the-badge&color=orange)](https://github.com/TripKode/kodechain-sdk-js/blob/master/LICENSE)
 [![TypeScript](https://img.shields.io/badge/TypeScript-Ready-blue?style=for-the-badge&logo=typescript)](https://www.typescriptlang.org/)
 [![Quantum Resistant](https://img.shields.io/badge/Security-Quantum--Resistant-green?style=for-the-badge)](https://csrc.nist.gov/projects/post-quantum-cryptography)
